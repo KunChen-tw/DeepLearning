@@ -11,9 +11,9 @@ class DQN(nn.Module):
     def __init__(self, state_dim, action_dim):
         super(DQN, self).__init__()
         self.fc = nn.Sequential(
-            nn.Linear(state_dim, 128),
+            nn.Linear(state_dim, 256),
             nn.ReLU(),
-            nn.Linear(128, 128),
+            nn.Linear(256, 128),
             nn.ReLU(),
             nn.Linear(128, action_dim),
         )
@@ -27,7 +27,7 @@ class DQNAgent:
         self.action_dim = action_dim
         self.memory = deque(maxlen=10000)
         self.gamma = 0.99
-        self.epsilon = 1.0
+        self.epsilon = 0.9
         self.epsilon_decay = 0.995
         self.epsilon_min = 0.01
         self.learning_rate = 0.001
@@ -45,7 +45,7 @@ class DQNAgent:
         self.memory.append((state, action, reward, next_state, done))
 
     def act(self, state):
-        if random.random() < self.epsilon:
+        if random.random() > self.epsilon:
             return random.randint(0, self.action_dim - 1)
         state_tensor = torch.FloatTensor(state).unsqueeze(0)
         q_values = self.policy_net(state_tensor)
@@ -99,6 +99,11 @@ if __name__ == "__main__":
         while not done:
             action = agent.act(state)
             next_state, reward, done, _, _ = env.step(action)
+
+            # 調整獎勵機制：若到達目標位置，額外給予獎勵
+            if done and next_state[0] >= env.goal_position:  # 到達目標
+                reward += 1000
+
             agent.remember(state, action, reward, next_state, done)
             state = next_state
             total_reward += reward
